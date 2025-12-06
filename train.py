@@ -226,6 +226,7 @@ class EvolutionaryTrainer:
 
         print("─" * 57)
         print(f"Training completato! Best fitness: {self.best_fitness:.3f}")
+        sys.stdout.flush()
 
     def save_checkpoint(self, generation: int):
         """Salva checkpoint del modello"""
@@ -247,6 +248,8 @@ class EvolutionaryTrainer:
             pickle.dump(checkpoint, f)
 
         print(f"[Checkpoint] Salvato: {filepath}")
+        import sys
+        sys.stdout.flush()
 
     @staticmethod
     def load_checkpoint(filepath: str) -> Tuple[LatticeMap, EVEConfig]:

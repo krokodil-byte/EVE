@@ -8,6 +8,10 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+# Forza unbuffered output
+sys.stdout = sys.__stdout__
+sys.stderr = sys.__stderr__
+
 from config import EVEConfig
 from data_loader import BitStreamDataset
 from train import EvolutionaryTrainer
@@ -208,6 +212,7 @@ class EVETUI:
             return
 
         print(f"\n📁 Loading dataset from: {dataset_path}")
+        sys.stdout.flush()
 
         try:
             self.dataset = BitStreamDataset(
@@ -218,10 +223,12 @@ class EVETUI:
             )
         except Exception as e:
             print(f"❌ Error loading dataset: {e}")
+            sys.stdout.flush()
             input("Press Enter to continue...")
             return
 
         print(f"✓ Dataset loaded: {len(self.dataset)} chunks")
+        sys.stdout.flush()
 
         generations = input(f"\nGenerations [{self.config.evolution.generations}]: ").strip()
         if generations:
@@ -230,14 +237,6 @@ class EVETUI:
             gen_count = self.config.evolution.generations
 
         print("\n🧬 Starting evolutionary training...")
-        print("─" * 60)
-
-        # DEBUG: Mostra config effettivo
-        print(f"[Config] Population: {self.config.evolution.population_size}")
-        print(f"[Config] Lattice: {self.config.lattice.size_per_dim}x{self.config.lattice.size_per_dim}")
-        print(f"[Config] Generations: {gen_count}")
-        print("─" * 60)
-        import sys
         sys.stdout.flush()
 
         self.trainer = EvolutionaryTrainer(self.config, self.dataset)
@@ -245,6 +244,7 @@ class EVETUI:
 
         print("\n✓ Training completed!")
         print(f"Best model saved to: {self.config.training.checkpoint_dir}")
+        sys.stdout.flush()
 
         input("\nPress Enter to continue...")
 
@@ -284,12 +284,15 @@ class EVETUI:
             return
 
         print(f"\n📦 Loading model: {checkpoint_path.name}")
+        sys.stdout.flush()
 
         try:
             self.inference, loaded_config = load_trained_model(str(checkpoint_path))
             print("✓ Model loaded successfully!")
+            sys.stdout.flush()
         except Exception as e:
             print(f"❌ Error loading model: {e}")
+            sys.stdout.flush()
             input("Press Enter to continue...")
             return
 
