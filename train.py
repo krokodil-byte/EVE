@@ -203,15 +203,22 @@ class EvolutionaryTrainer:
         if generations is None:
             generations = self.config.evolution.generations
 
-        print("╔═══════════════════════════════════════════════════════╗")
-        print("║              EVE EVOLUTIONARY TRAINING                ║")
-        print("╚═══════════════════════════════════════════════════════╝")
-        print(f"Population: {self.config.evolution.population_size}")
-        print(f"Generations: {generations}")
-        print(f"Dataset: {len(self.dataset)} chunks")
-        print(f"Mask ratio: {self.dataset.mask_ratio:.1%}")
-        print("─" * 57)
         import sys
+        print("╔═══════════════════════════════════════════════════════╗")
+        sys.stdout.flush()
+        print("║              EVE EVOLUTIONARY TRAINING                ║")
+        sys.stdout.flush()
+        print("╚═══════════════════════════════════════════════════════╝")
+        sys.stdout.flush()
+        print(f"Population: {self.config.evolution.population_size}")
+        sys.stdout.flush()
+        print(f"Generations: {generations}")
+        sys.stdout.flush()
+        print(f"Dataset: {len(self.dataset)} chunks")
+        sys.stdout.flush()
+        print(f"Mask ratio: {self.dataset.mask_ratio:.1%}")
+        sys.stdout.flush()
+        print("─" * 57)
         sys.stdout.flush()
 
         for gen in range(generations):
