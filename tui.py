@@ -1,3 +1,4 @@
+#!/usr/bin/env python -u
 """
 EVE Text User Interface (TUI)
 Interfaccia interattiva per training e chat
