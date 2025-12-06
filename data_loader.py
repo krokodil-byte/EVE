@@ -10,17 +10,26 @@ import gzip
 import bz2
 import xml.etree.ElementTree as ET
 import numpy as np
-from typing import List, Iterator, Optional, Tuple
+from typing import List, Iterator, Optional, Tuple, Dict, Any
 from pathlib import Path
 from interace import TextTranslator, ByteTranslator
+
+# Import opzionali per Parquet
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
+    print("[Warning] pandas non disponibile. Installa con: pip install pandas pyarrow")
 
 
 class DataLoader:
     """
     Caricatore universale di dataset
-    Supporta: .txt, .json, .csv, .md, .xml, binari
+    Supporta: .txt, .json, .csv, .md, .xml, .parquet, binari
     Supporta file compressi: .gz, .bz2
     Supporta dump Wikipedia XML
+    Supporta dataset conversazionali (Parquet con colonne chat)
     """
 
     def __init__(self, chunk_size: int = 512):
@@ -226,6 +235,177 @@ class DataLoader:
 
         return chunks
 
+    def load_parquet_file(
+        self,
+        path: str,
+        conversation_columns: Optional[Dict[str, str]] = None
+    ) -> List[str]:
+        """
+        Carica file Parquet con dataset conversazionali
+
+        Args:
+            path: Path al file .parquet
+            conversation_columns: Mapping delle colonne (default: auto-detect)
+                Esempi:
+                - {'user': 'prompt', 'assistant': 'response'}
+                - {'user': 'question', 'assistant': 'answer'}
+                - {'conversation': 'messages'}  # Lista di turni
+
+        Returns:
+            Lista di chunk con conversazioni formattate
+        """
+        if not PANDAS_AVAILABLE:
+            raise ImportError(
+                "pandas/pyarrow richiesti per Parquet. "
+                "Installa con: pip install pandas pyarrow"
+            )
+
+        # Carica Parquet
+        df = pd.read_parquet(path)
+        chunks = []
+
+        print(f"[Parquet] Colonne disponibili: {list(df.columns)}")
+
+        # Auto-detect schema se non specificato
+        if conversation_columns is None:
+            conversation_columns = self._detect_conversation_schema(df)
+
+        # Caso 1: Colonne separate user/assistant
+        if 'user' in conversation_columns and 'assistant' in conversation_columns:
+            user_col = conversation_columns['user']
+            assistant_col = conversation_columns['assistant']
+
+            for _, row in df.iterrows():
+                user_text = str(row[user_col]) if pd.notna(row[user_col]) else ""
+                assistant_text = str(row[assistant_col]) if pd.notna(row[assistant_col]) else ""
+
+                if user_text.strip() and assistant_text.strip():
+                    # Formato conversazionale
+                    conversation = f"User: {user_text}\nAssistant: {assistant_text}"
+
+                    # Chunking se troppo lungo
+                    if len(conversation) <= self.chunk_size:
+                        chunks.append(conversation)
+                    else:
+                        for i in range(0, len(conversation), self.chunk_size):
+                            chunk = conversation[i:i + self.chunk_size]
+                            if chunk.strip():
+                                chunks.append(chunk)
+
+        # Caso 2: Colonna con lista di messaggi
+        elif 'conversation' in conversation_columns:
+            conv_col = conversation_columns['conversation']
+
+            for _, row in df.iterrows():
+                messages = row[conv_col]
+
+                # Converti numpy array in lista se necessario
+                if hasattr(messages, 'tolist'):
+                    messages = messages.tolist()
+
+                if not isinstance(messages, list):
+                    continue
+
+                # Costruisci conversazione multi-turn
+                conversation_lines = []
+                for msg in messages:
+                    if isinstance(msg, dict):
+                        role = msg.get('role', msg.get('from', 'unknown'))
+                        content = msg.get('content', msg.get('value', ''))
+
+                        # Normalizza role
+                        if role in ['user', 'human', 'question']:
+                            role = 'User'
+                        elif role in ['assistant', 'gpt', 'answer', 'bot']:
+                            role = 'Assistant'
+                        elif role == 'system':
+                            role = 'System'
+
+                        conversation_lines.append(f"{role}: {content}")
+
+                if conversation_lines:
+                    full_conversation = '\n'.join(conversation_lines)
+
+                    # Chunking
+                    if len(full_conversation) <= self.chunk_size:
+                        chunks.append(full_conversation)
+                    else:
+                        for i in range(0, len(full_conversation), self.chunk_size):
+                            chunk = full_conversation[i:i + self.chunk_size]
+                            if chunk.strip():
+                                chunks.append(chunk)
+
+        # Caso 3: Colonna singola di testo
+        elif 'text' in conversation_columns:
+            text_col = conversation_columns['text']
+
+            for _, row in df.iterrows():
+                text = str(row[text_col]) if pd.notna(row[text_col]) else ""
+
+                if text.strip():
+                    # Chunking
+                    for i in range(0, len(text), self.chunk_size):
+                        chunk = text[i:i + self.chunk_size]
+                        if chunk.strip():
+                            chunks.append(chunk)
+
+        print(f"[Parquet] Estratti {len(chunks)} chunk conversazionali")
+        return chunks
+
+    def _detect_conversation_schema(self, df: 'pd.DataFrame') -> Dict[str, str]:
+        """
+        Auto-detect schema colonne conversazionali
+
+        Returns:
+            Mapping colonne rilevate
+        """
+        cols = [c.lower() for c in df.columns]
+
+        # Pattern comuni per colonne user/assistant
+        user_patterns = ['prompt', 'user', 'question', 'input', 'human', 'instruction']
+        assistant_patterns = ['response', 'assistant', 'answer', 'output', 'gpt', 'completion']
+
+        user_col = None
+        assistant_col = None
+
+        for pattern in user_patterns:
+            for col in df.columns:
+                if pattern in col.lower():
+                    user_col = col
+                    break
+            if user_col:
+                break
+
+        for pattern in assistant_patterns:
+            for col in df.columns:
+                if pattern in col.lower():
+                    assistant_col = col
+                    break
+            if assistant_col:
+                break
+
+        if user_col and assistant_col:
+            print(f"[Parquet] Schema rilevato: user='{user_col}', assistant='{assistant_col}'")
+            return {'user': user_col, 'assistant': assistant_col}
+
+        # Cerca colonna conversazione/messaggi
+        conv_patterns = ['conversation', 'messages', 'dialog', 'chat']
+        for pattern in conv_patterns:
+            for col in df.columns:
+                if pattern in col.lower():
+                    print(f"[Parquet] Schema rilevato: conversation='{col}'")
+                    return {'conversation': col}
+
+        # Fallback: cerca colonna "text"
+        for col in df.columns:
+            if 'text' in col.lower():
+                print(f"[Parquet] Schema rilevato: text='{col}'")
+                return {'text': col}
+
+        # Default: usa prima colonna
+        print(f"[Parquet] Schema default: text='{df.columns[0]}'")
+        return {'text': df.columns[0]}
+
     def load_directory(self, path: str, extensions: Optional[List[str]] = None) -> List[str]:
         """
         Carica tutti i file da una directory
@@ -238,7 +418,7 @@ class DataLoader:
         path_obj = Path(path)
 
         if extensions is None:
-            extensions = ['.txt', '.md', '.json', '.csv', '.xml', '.gz', '.bz2']
+            extensions = ['.txt', '.md', '.json', '.csv', '.xml', '.parquet', '.gz', '.bz2']
 
         for file_path in path_obj.rglob('*'):
             if file_path.is_file() and file_path.suffix in extensions:
@@ -289,6 +469,8 @@ class DataLoader:
                 return self.load_wikipedia_xml(path)
             except:
                 return self.load_xml_file(path)
+        elif ext == '.parquet':
+            return self.load_parquet_file(path)
         elif ext in ['.txt', '.md', '.py', '.js', '.html', '.css', '.c', '.cpp', '.java']:
             return self.load_text_file(path)
         elif ext == '.json':
