@@ -30,6 +30,10 @@ class EvolutionaryTrainer:
         self.config = config
         self.dataset = dataset
 
+        import sys
+        print(f"Creating population of {config.evolution.population_size} lattice maps...")
+        sys.stdout.flush()
+
         self.population = [
             LatticeMap(
                 size=config.lattice.size_per_dim,
@@ -37,6 +41,9 @@ class EvolutionaryTrainer:
             )
             for _ in range(config.evolution.population_size)
         ]
+
+        print(f"✓ Population created ({config.lattice.size_per_dim}x{config.lattice.size_per_dim} lattice)")
+        sys.stdout.flush()
 
         self.reward = PredictiveReward()
         self.stats = TrainingStats()
@@ -204,12 +211,15 @@ class EvolutionaryTrainer:
         print(f"Dataset: {len(self.dataset)} chunks")
         print(f"Mask ratio: {self.dataset.mask_ratio:.1%}")
         print("─" * 57)
+        import sys
+        sys.stdout.flush()
 
         for gen in range(generations):
             metrics = self.train_epoch(gen)
 
             if verbose and (gen % 1 == 0 or gen == generations - 1):
                 print(self.stats.display())
+                sys.stdout.flush()
 
             if (gen + 1) % self.config.training.save_interval == 0:
                 self.save_checkpoint(gen + 1)
