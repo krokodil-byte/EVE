@@ -232,6 +232,14 @@ class EVETUI:
         print("\n🧬 Starting evolutionary training...")
         print("─" * 60)
 
+        # DEBUG: Mostra config effettivo
+        print(f"[Config] Population: {self.config.evolution.population_size}")
+        print(f"[Config] Lattice: {self.config.lattice.size_per_dim}x{self.config.lattice.size_per_dim}")
+        print(f"[Config] Generations: {gen_count}")
+        print("─" * 60)
+        import sys
+        sys.stdout.flush()
+
         self.trainer = EvolutionaryTrainer(self.config, self.dataset)
         self.trainer.train(generations=gen_count, verbose=True)
 
