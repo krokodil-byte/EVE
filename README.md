@@ -178,6 +178,48 @@ Mask ratio: 0.20
 Generations: 150
 ```
 
+### Training su Wikipedia
+
+```bash
+# Dump XML di Wikipedia (anche compressi!)
+Dataset path: ./itwiki-latest-pages-articles.xml.bz2
+# oppure
+Dataset path: ./enwiki-latest-pages-articles.xml.gz
+Mask ratio: 0.25
+Generations: 500
+```
+
+**Formati supportati:**
+- `.xml` - XML semplice
+- `.xml.gz` - XML compresso gzip
+- `.xml.bz2` - XML compresso bzip2 (formato standard Wikipedia)
+- Qualsiasi file con "wiki" nel nome viene automaticamente parsato come dump Wikipedia
+
+### Training su Dataset Conversazionali (Parquet)
+
+```bash
+# Dataset conversazionali (HuggingFace, custom)
+Dataset path: ./conversations.parquet
+Mask ratio: 0.30
+Generations: 300
+```
+
+**Schema supportati (auto-detection):**
+- `prompt` / `response` - Colonne separate user/assistant
+- `question` / `answer` - Schema Q&A
+- `conversation` / `messages` - Lista di turni multi-turn
+- Qualsiasi schema con pattern comuni (auto-rilevato)
+
+**Output formattato:**
+```
+User: Come funziona EVE?
+Assistant: EVE usa evoluzione biologica invece di gradient descent.
+User: Quali operatori usa?
+Assistant: NOT, XOR, AND, shift, e majority gate.
+```
+
+EVE impara la struttura del dialogo a turni direttamente a livello di bit!
+
 ## ⚙️ Configurazione Avanzata
 
 ### File `eve_config.json`
