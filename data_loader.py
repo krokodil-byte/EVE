@@ -6,6 +6,9 @@ Carica dataset arbitrari e li converte in bit streams
 import os
 import json
 import csv
+import gzip
+import bz2
+import xml.etree.ElementTree as ET
 import numpy as np
 from typing import List, Iterator, Optional, Tuple
 from pathlib import Path
@@ -15,7 +18,9 @@ from interace import TextTranslator, ByteTranslator
 class DataLoader:
     """
     Caricatore universale di dataset
-    Supporta: .txt, .json, .csv, .md, binari
+    Supporta: .txt, .json, .csv, .md, .xml, binari
+    Supporta file compressi: .gz, .bz2
+    Supporta dump Wikipedia XML
     """
 
     def __init__(self, chunk_size: int = 512):
@@ -87,6 +92,140 @@ class DataLoader:
 
         return chunks
 
+    def load_xml_file(self, path: str, text_tags: Optional[List[str]] = None) -> List[str]:
+        """
+        Carica file XML ed estrae testo
+
+        Args:
+            path: Path al file XML
+            text_tags: Tag da cui estrarre testo (default: cerca tag comuni)
+
+        Returns:
+            Lista di chunk di testo estratti
+        """
+        if text_tags is None:
+            # Tag comuni per Wikipedia e altri XML
+            text_tags = ['text', 'p', 'content', 'body', 'page']
+
+        chunks = []
+
+        try:
+            # Prova a parsare come XML normale
+            tree = ET.parse(path)
+            root = tree.getroot()
+
+            # Estrai testo da tutti i tag specificati
+            for tag_name in text_tags:
+                for element in root.iter(tag_name):
+                    if element.text and element.text.strip():
+                        text = element.text.strip()
+                        # Chunking del testo estratto
+                        for i in range(0, len(text), self.chunk_size):
+                            chunk = text[i:i + self.chunk_size]
+                            if chunk.strip():
+                                chunks.append(chunk)
+
+        except ET.ParseError:
+            # Se parsing fallisce, tratta come testo
+            print(f"[Warning] XML parsing fallito per {path}, carico come testo")
+            return self.load_text_file(path)
+
+        return chunks
+
+    def load_wikipedia_xml(self, path: str) -> List[str]:
+        """
+        Carica dump XML di Wikipedia
+        Formato: <page><title>...</title><text>...</text></page>
+
+        Args:
+            path: Path al dump Wikipedia (.xml o .xml.gz o .xml.bz2)
+
+        Returns:
+            Lista di chunk di testo da articoli
+        """
+        chunks = []
+
+        # Apri file (gestendo compressione)
+        if path.endswith('.gz'):
+            file_obj = gzip.open(path, 'rt', encoding='utf-8', errors='ignore')
+        elif path.endswith('.bz2'):
+            file_obj = bz2.open(path, 'rt', encoding='utf-8', errors='ignore')
+        else:
+            file_obj = open(path, 'r', encoding='utf-8', errors='ignore')
+
+        try:
+            # Parsing incrementale per file grandi
+            current_page_text = None
+            in_text_tag = False
+            text_buffer = []
+
+            for line in file_obj:
+                # Cerca tag <text>
+                if '<text' in line:
+                    in_text_tag = True
+                    # Estrai contenuto sulla stessa riga se presente
+                    start = line.find('>') + 1
+                    end = line.find('</text>')
+                    if end != -1:
+                        text_buffer.append(line[start:end])
+                        in_text_tag = False
+                    elif start > 0:
+                        text_buffer.append(line[start:])
+                elif '</text>' in line:
+                    end = line.find('</text>')
+                    text_buffer.append(line[:end])
+                    in_text_tag = False
+
+                    # Processa testo accumulato
+                    full_text = ''.join(text_buffer).strip()
+                    if full_text and len(full_text) > 50:
+                        # Chunking
+                        for i in range(0, len(full_text), self.chunk_size):
+                            chunk = full_text[i:i + self.chunk_size]
+                            if chunk.strip():
+                                chunks.append(chunk)
+
+                    text_buffer = []
+                elif in_text_tag:
+                    text_buffer.append(line)
+
+        finally:
+            file_obj.close()
+
+        print(f"[Wikipedia] Estratti {len(chunks)} chunk da {path}")
+        return chunks
+
+    def load_compressed_file(self, path: str) -> List[str]:
+        """
+        Carica file compresso (.gz, .bz2)
+
+        Args:
+            path: Path al file compresso
+
+        Returns:
+            Lista di chunk
+        """
+        # Determina tipo compressione
+        if path.endswith('.gz'):
+            open_fn = gzip.open
+        elif path.endswith('.bz2'):
+            open_fn = bz2.open
+        else:
+            return self.load_text_file(path)
+
+        # Leggi contenuto decompresso
+        with open_fn(path, 'rt', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+
+        # Chunking
+        chunks = []
+        for i in range(0, len(content), self.chunk_size):
+            chunk = content[i:i + self.chunk_size]
+            if chunk.strip():
+                chunks.append(chunk)
+
+        return chunks
+
     def load_directory(self, path: str, extensions: Optional[List[str]] = None) -> List[str]:
         """
         Carica tutti i file da una directory
@@ -99,7 +238,7 @@ class DataLoader:
         path_obj = Path(path)
 
         if extensions is None:
-            extensions = ['.txt', '.md', '.json', '.csv']
+            extensions = ['.txt', '.md', '.json', '.csv', '.xml', '.gz', '.bz2']
 
         for file_path in path_obj.rglob('*'):
             if file_path.is_file() and file_path.suffix in extensions:
@@ -126,9 +265,31 @@ class DataLoader:
         if path_obj.is_dir():
             return self.load_directory(path)
 
+        # Gestisci estensioni composte (es. .xml.gz, .xml.bz2)
+        full_name = path_obj.name.lower()
+
+        # Dump Wikipedia (rileva pattern comuni)
+        if 'wiki' in full_name and ('.xml' in full_name):
+            return self.load_wikipedia_xml(path)
+
+        # File compressi
+        if full_name.endswith('.gz') or full_name.endswith('.bz2'):
+            # Se è XML compresso, usa parser Wikipedia
+            if '.xml' in full_name:
+                return self.load_wikipedia_xml(path)
+            else:
+                return self.load_compressed_file(path)
+
+        # Estensione singola
         ext = path_obj.suffix.lower()
 
-        if ext in ['.txt', '.md', '.py', '.js', '.html', '.css', '.c', '.cpp', '.java']:
+        if ext == '.xml':
+            # Prova prima come Wikipedia, poi XML generico
+            try:
+                return self.load_wikipedia_xml(path)
+            except:
+                return self.load_xml_file(path)
+        elif ext in ['.txt', '.md', '.py', '.js', '.html', '.css', '.c', '.cpp', '.java']:
             return self.load_text_file(path)
         elif ext == '.json':
             return self.load_json_file(path)

@@ -178,6 +178,23 @@ Mask ratio: 0.20
 Generations: 150
 ```
 
+### Training su Wikipedia
+
+```bash
+# Dump XML di Wikipedia (anche compressi!)
+Dataset path: ./itwiki-latest-pages-articles.xml.bz2
+# oppure
+Dataset path: ./enwiki-latest-pages-articles.xml.gz
+Mask ratio: 0.25
+Generations: 500
+```
+
+**Formati supportati:**
+- `.xml` - XML semplice
+- `.xml.gz` - XML compresso gzip
+- `.xml.bz2` - XML compresso bzip2 (formato standard Wikipedia)
+- Qualsiasi file con "wiki" nel nome viene automaticamente parsato come dump Wikipedia
+
 ## ⚙️ Configurazione Avanzata
 
 ### File `eve_config.json`
