@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-EVE - Simple Training Interface
+EVE - Text User Interface with Menu System
+Menu-based interface that uses CLI core underneath
 """
 
 import os
@@ -15,72 +16,259 @@ from data_loader import BitStreamDataset
 from train import EvolutionaryTrainer
 
 
-def main():
-    """Simple training interface"""
+class EVETUI:
+    """Menu-based TUI using CLI core"""
 
-    print("\n" + "="*60)
-    print("  EVE - Evolutionary Intelligence Training")
-    print("="*60 + "\n")
+    def __init__(self):
+        self.config = EVEConfig()
+        self.dataset = None
+        self.trainer = None
 
-    # Get dataset path
-    dataset_path = input("Dataset path: ").strip()
-    if not dataset_path or not Path(dataset_path).exists():
-        print("❌ Invalid path!")
-        return
+    def clear(self):
+        os.system('clear' if os.name != 'nt' else 'cls')
 
-    # Create config
-    config = EVEConfig()
+    def banner(self):
+        print("\n" + "="*60)
+        print("  EVE - Evolutionary Intelligence")
+        print("="*60 + "\n")
 
-    # Ask for key parameters
-    try:
-        pop = input(f"Population size [{config.evolution.population_size}]: ").strip()
-        if pop:
-            config.evolution.population_size = int(pop)
+    def main_menu(self):
+        """Main menu loop"""
+        while True:
+            self.clear()
+            self.banner()
 
-        gens = input(f"Generations [{config.evolution.generations}]: ").strip()
+            print("1. 🎯 Train Model")
+            print("2. ⚙️  Configure Settings")
+            print("3. 📊 View Current Config")
+            print("4. 💾 Save Config")
+            print("5. 📁 Load Config")
+            print("6. 🚪 Exit")
+
+            choice = input("\nChoice: ").strip()
+
+            if choice == '1':
+                self.train_menu()
+            elif choice == '2':
+                self.settings_menu()
+            elif choice == '3':
+                self.view_config()
+            elif choice == '4':
+                self.save_config()
+            elif choice == '5':
+                self.load_config()
+            elif choice == '6':
+                print("\n👋 Goodbye!")
+                break
+
+    def train_menu(self):
+        """Training menu - uses CLI core"""
+        self.clear()
+        self.banner()
+        print("─ TRAINING MODE ─\n")
+
+        # Get dataset path
+        dataset_path = input("Dataset path: ").strip()
+        if not dataset_path or not Path(dataset_path).exists():
+            print("❌ Invalid path!")
+            input("\nPress Enter...")
+            return
+
+        # Ask for generations (optional override)
+        gens = input(f"Generations [{self.config.evolution.generations}]: ").strip()
         if gens:
-            config.evolution.generations = int(gens)
+            gen_count = int(gens)
+        else:
+            gen_count = self.config.evolution.generations
 
-        lattice = input(f"Lattice size [{config.lattice.size_per_dim}]: ").strip()
-        if lattice:
-            config.lattice.size_per_dim = int(lattice)
+        # Load dataset
+        print(f"\n📁 Loading dataset from: {dataset_path}")
+        sys.stdout.flush()
 
-    except ValueError as e:
-        print(f"❌ Invalid input: {e}")
-        return
+        try:
+            self.dataset = BitStreamDataset(
+                data_source=dataset_path,
+                chunk_size=128,
+                mask_ratio=self.config.training.mask_ratio,
+                seed=42
+            )
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            input("\nPress Enter...")
+            return
 
-    # Load dataset
-    print(f"\n📁 Loading dataset from: {dataset_path}")
-    sys.stdout.flush()
+        print(f"✓ Dataset loaded: {len(self.dataset)} chunks\n")
+        sys.stdout.flush()
 
-    try:
-        dataset = BitStreamDataset(
-            data_source=dataset_path,
-            chunk_size=128,
-            mask_ratio=config.training.mask_ratio,
-            seed=42
-        )
-    except Exception as e:
-        print(f"❌ Error loading dataset: {e}")
-        return
+        # Train using CLI core
+        try:
+            self.trainer = EvolutionaryTrainer(self.config, self.dataset)
+            self.trainer.train(generations=gen_count, verbose=True)
 
-    print(f"✓ Dataset loaded: {len(dataset)} chunks\n")
-    sys.stdout.flush()
+            print(f"\n✓ Training completed!")
+            print(f"Saved to: {self.config.training.checkpoint_dir}")
 
-    # Create trainer and train
-    try:
-        trainer = EvolutionaryTrainer(config, dataset)
-        trainer.train(generations=config.evolution.generations, verbose=True)
+        except KeyboardInterrupt:
+            print("\n\n⚠️  Training interrupted")
+        except Exception as e:
+            print(f"\n❌ Training failed: {e}")
+            import traceback
+            traceback.print_exc()
 
-        print(f"\n✓ Training completed!")
-        print(f"Best model saved to: {config.training.checkpoint_dir}")
+        input("\nPress Enter...")
 
-    except KeyboardInterrupt:
-        print("\n\n⚠️  Training interrupted by user")
-    except Exception as e:
-        print(f"\n❌ Training failed: {e}")
-        import traceback
-        traceback.print_exc()
+    def settings_menu(self):
+        """Settings configuration menu"""
+        while True:
+            self.clear()
+            self.banner()
+            print("─ SETTINGS ─\n")
+
+            print("1. Lattice Settings")
+            print("2. Evolution Settings")
+            print("3. Training Settings")
+            print("4. Back")
+
+            choice = input("\nChoice: ").strip()
+
+            if choice == '1':
+                self.config_lattice()
+            elif choice == '2':
+                self.config_evolution()
+            elif choice == '3':
+                self.config_training()
+            elif choice == '4':
+                break
+
+    def config_lattice(self):
+        """Configure lattice parameters"""
+        self.clear()
+        self.banner()
+        print("─ LATTICE CONFIGURATION ─\n")
+
+        print(f"Current dimensions: {self.config.lattice.dimensions}")
+        print(f"Current size per dim: {self.config.lattice.size_per_dim}")
+        print(f"Current beam width: {self.config.lattice.beam_width}")
+        print(f"Current max steps: {self.config.lattice.max_steps}\n")
+
+        dims = input("Dimensions [Enter to keep]: ").strip()
+        if dims:
+            self.config.lattice.dimensions = int(dims)
+
+        size = input("Size per dimension [Enter to keep]: ").strip()
+        if size:
+            self.config.lattice.size_per_dim = int(size)
+
+        beam = input("Beam width [Enter to keep]: ").strip()
+        if beam:
+            self.config.lattice.beam_width = int(beam)
+
+        steps = input("Max steps [Enter to keep]: ").strip()
+        if steps:
+            self.config.lattice.max_steps = int(steps)
+
+        print("\n✓ Lattice settings updated")
+        input("Press Enter...")
+
+    def config_evolution(self):
+        """Configure evolution parameters"""
+        self.clear()
+        self.banner()
+        print("─ EVOLUTION CONFIGURATION ─\n")
+
+        print(f"Current population: {self.config.evolution.population_size}")
+        print(f"Current elite ratio: {self.config.evolution.elite_ratio}")
+        print(f"Current mutation rate: {self.config.evolution.mutation_rate}")
+        print(f"Current generations: {self.config.evolution.generations}\n")
+
+        pop = input("Population size [Enter to keep]: ").strip()
+        if pop:
+            self.config.evolution.population_size = int(pop)
+
+        elite = input("Elite ratio (0.0-1.0) [Enter to keep]: ").strip()
+        if elite:
+            self.config.evolution.elite_ratio = float(elite)
+
+        mut = input("Mutation rate (0.0-1.0) [Enter to keep]: ").strip()
+        if mut:
+            self.config.evolution.mutation_rate = float(mut)
+
+        gens = input("Generations [Enter to keep]: ").strip()
+        if gens:
+            self.config.evolution.generations = int(gens)
+
+        print("\n✓ Evolution settings updated")
+        input("Press Enter...")
+
+    def config_training(self):
+        """Configure training parameters"""
+        self.clear()
+        self.banner()
+        print("─ TRAINING CONFIGURATION ─\n")
+
+        print(f"Current mask ratio: {self.config.training.mask_ratio}")
+        print(f"Current batch size: {self.config.training.batch_size}")
+        print(f"Current save interval: {self.config.training.save_interval}\n")
+
+        mask = input("Mask ratio (0.0-1.0) [Enter to keep]: ").strip()
+        if mask:
+            self.config.training.mask_ratio = float(mask)
+
+        batch = input("Batch size [Enter to keep]: ").strip()
+        if batch:
+            self.config.training.batch_size = int(batch)
+
+        interval = input("Save interval [Enter to keep]: ").strip()
+        if interval:
+            self.config.training.save_interval = int(interval)
+
+        print("\n✓ Training settings updated")
+        input("Press Enter...")
+
+    def view_config(self):
+        """Display current configuration"""
+        self.clear()
+        self.banner()
+        print(self.config.display())
+        input("\nPress Enter...")
+
+    def save_config(self):
+        """Save configuration to file"""
+        self.clear()
+        self.banner()
+
+        path = input("Config file path [./eve_config.json]: ").strip()
+        if not path:
+            path = "./eve_config.json"
+
+        try:
+            self.config.save(path)
+            print(f"\n✓ Config saved to: {path}")
+        except Exception as e:
+            print(f"\n❌ Error: {e}")
+
+        input("Press Enter...")
+
+    def load_config(self):
+        """Load configuration from file"""
+        self.clear()
+        self.banner()
+
+        path = input("Config file path: ").strip()
+
+        try:
+            self.config = EVEConfig.load(path)
+            print(f"\n✓ Config loaded from: {path}")
+        except Exception as e:
+            print(f"\n❌ Error: {e}")
+
+        input("Press Enter...")
+
+
+def main():
+    """Main entry point"""
+    tui = EVETUI()
+    tui.main_menu()
 
 
 if __name__ == "__main__":

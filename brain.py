@@ -1,5 +1,5 @@
 # brain.py
-import numpy as np
+from array_backend import xp
 import random
 from dataclasses import dataclass
 from typing import List, Tuple, Callable, Dict
@@ -9,7 +9,7 @@ from typing import List, Tuple, Callable, Dict
 # =========================
 
 # Tutti gli operatori lavorano su vettori 1D di bit {0,1}, dtype uint8 o bool.
-BitArray = np.ndarray  # shape (N,), dtype=uint8 o bool
+BitArray = xp.ndarray  # shape (N,), dtype=uint8 o bool
 
 def op_identity(x: BitArray) -> BitArray:
     return x
@@ -19,25 +19,25 @@ def op_not(x: BitArray) -> BitArray:
 
 def op_shift_left_xor(x: BitArray) -> BitArray:
     """XOR tra x e x shiftato a sinistra (tipo mini LFSR)."""
-    shifted = np.roll(x, -1)
-    return np.bitwise_xor(x, shifted)
+    shifted = xp.roll(x, -1)
+    return xp.bitwise_xor(x, shifted)
 
 def op_shift_right_xor(x: BitArray) -> BitArray:
-    shifted = np.roll(x, 1)
-    return np.bitwise_xor(x, shifted)
+    shifted = xp.roll(x, 1)
+    return xp.bitwise_xor(x, shifted)
 
 def op_and_neighbors(x: BitArray) -> BitArray:
     """AND locale con vicini (filtro tipo convolution min)."""
-    left = np.roll(x, 1)
-    right = np.roll(x, -1)
-    return np.bitwise_and(x, np.bitwise_and(left, right))
+    left = xp.roll(x, 1)
+    right = xp.roll(x, -1)
+    return xp.bitwise_and(x, xp.bitwise_and(left, right))
 
 def op_majority_3(x: BitArray) -> BitArray:
     """Majority gate su finestre di 3 bit (left, self, right)."""
-    left = np.roll(x, 1)
-    right = np.roll(x, -1)
+    left = xp.roll(x, 1)
+    right = xp.roll(x, -1)
     s = left + x + right  # 0..3
-    return (s >= 2).astype(np.uint8)
+    return (s >= 2).astype(xp.uint8)
 
 OP_LIBRARY: Dict[str, Callable[[BitArray], BitArray]] = {
     "id": op_identity,
@@ -162,7 +162,7 @@ def propagate(
     quindi qui manteniamo tutti i beam e ci limitiamo a tagliare per numero.
     """
     # stato iniziale
-    x0 = x0.astype(np.uint8)
+    x0 = x0.astype(xp.uint8)
     beams: List[BeamState] = [BeamState(coord=start_coord, state=x0, steps=0)]
 
     for _ in range(max_steps):

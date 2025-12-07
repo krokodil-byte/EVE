@@ -1,9 +1,11 @@
 """
+import numpy as np  # For type hints
 EVE Advanced Reward System
 Sistema di reward predittivo con metriche dettagliate
 """
+import numpy as np  # For type hints
 
-import numpy as np
+from array_backend import xp
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from collections import deque
@@ -45,9 +47,9 @@ class TrainingStats:
         """Aggiorna stats con nuova generazione"""
         self.generation += 1
         self.best_fitness = max(fitnesses)
-        self.avg_fitness = np.mean(fitnesses)
+        self.avg_fitness = xp.mean(fitnesses)
         self.worst_fitness = min(fitnesses)
-        self.fitness_std = np.std(fitnesses)
+        self.fitness_std = xp.std(fitnesses)
         self.metrics = metrics
 
         self.history.append({
@@ -76,7 +78,7 @@ class PredictiveReward:
     Valuta la capacità di predire bit mascherati
     """
 
-    def __init__(self, mask_positions: Optional[np.ndarray] = None):
+    def __init__(self, mask_positions: Optional[xp.ndarray] = None):
         """
         Args:
             mask_positions: Array booleano che indica quali bit sono mascherati
@@ -84,11 +86,11 @@ class PredictiveReward:
         self.mask_positions = mask_positions
         self.stats = TrainingStats()
 
-    def set_mask(self, mask_positions: np.ndarray):
+    def set_mask(self, mask_positions: xp.ndarray):
         """Imposta nuove posizioni mascherate"""
         self.mask_positions = mask_positions
 
-    def compute_metrics(self, predicted: np.ndarray, target: np.ndarray) -> PredictionMetrics:
+    def compute_metrics(self, predicted: xp.ndarray, target: xp.ndarray) -> PredictionMetrics:
         """
         Calcola metriche dettagliate di predizione
 
@@ -132,7 +134,7 @@ class PredictiveReward:
             bit_total=len(correct)
         )
 
-    def __call__(self, predicted: np.ndarray, target: np.ndarray) -> float:
+    def __call__(self, predicted: xp.ndarray, target: xp.ndarray) -> float:
         """
         Calcola reward (fitness)
 
@@ -154,7 +156,7 @@ class MultiObjectiveReward:
 
     def __init__(
         self,
-        mask_positions: Optional[np.ndarray] = None,
+        mask_positions: Optional[xp.ndarray] = None,
         accuracy_weight: float = 0.7,
         f1_weight: float = 0.2,
         diversity_weight: float = 0.1
@@ -165,10 +167,10 @@ class MultiObjectiveReward:
         self.diversity_weight = diversity_weight
         self.prediction_history = deque(maxlen=10)
 
-    def set_mask(self, mask_positions: np.ndarray):
+    def set_mask(self, mask_positions: xp.ndarray):
         self.predictive_reward.set_mask(mask_positions)
 
-    def __call__(self, predicted: np.ndarray, target: np.ndarray) -> float:
+    def __call__(self, predicted: xp.ndarray, target: xp.ndarray) -> float:
         metrics = self.predictive_reward.compute_metrics(predicted, target)
 
         self.prediction_history.append(predicted.copy())
@@ -192,9 +194,9 @@ class MultiObjectiveReward:
         for i in range(len(recent[0])):
             bit_values = [pred[i] for pred in recent if i < len(pred)]
             if bit_values:
-                variances.append(np.var(bit_values))
+                variances.append(xp.var(bit_values))
 
-        return np.mean(variances) if variances else 0.0
+        return xp.mean(variances) if variances else 0.0
 
 
 class AdaptiveReward:
@@ -213,7 +215,7 @@ class AdaptiveReward:
         if len(self.current_performance) < 5:
             return False
 
-        avg_perf = np.mean(list(self.current_performance))
+        avg_perf = xp.mean(list(self.current_performance))
         return avg_perf > self.performance_threshold and self.mask_ratio < self.target_mask_ratio
 
     def update_difficulty(self):
@@ -231,12 +233,12 @@ class AdaptiveReward:
 
 if __name__ == "__main__":
     # Test reward system
-    np.random.seed(42)
+    xp.random.seed(42)
 
-    target = np.random.randint(0, 2, 100).astype(np.uint8)
+    target = xp.random.randint(0, 2, 100).astype(xp.uint8)
     predicted = target.copy()
-    mask = np.random.rand(100) < 0.3
-    predicted[mask] = np.random.randint(0, 2, mask.sum()).astype(np.uint8)
+    mask = xp.random.rand(100) < 0.3
+    predicted[mask] = xp.random.randint(0, 2, mask.sum()).astype(xp.uint8)
 
     reward = PredictiveReward(mask_positions=mask)
     metrics = reward.compute_metrics(predicted, target)
