@@ -242,14 +242,7 @@ class EVETUI:
         sys.stdout.flush()
 
         try:
-            print(f"[DEBUG] Config injection check: pop={self.config.evolution.population_size}, lattice={self.config.lattice.size_per_dim}")
-            sys.stdout.flush()
-
             self.trainer = EvolutionaryTrainer(self.config, self.dataset)
-
-            print(f"[DEBUG] Trainer created successfully")
-            sys.stdout.flush()
-
             self.trainer.train(generations=gen_count, verbose=True)
 
             print("\n✓ Training completed!")
