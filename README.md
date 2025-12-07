@@ -363,14 +363,4 @@ Questo è un progetto di ricerca sperimentale. Idee:
 
 [Specifica licenza]
 
-## 🙏 Riconoscimenti
-
-Ispirato da:
-- Cellular automata (Conway, Wolfram)
-- Genetic programming (Koza)
-- Evolutionary algorithms (Holland)
-- Biological neural computation
-
----
-
 **EVE**: L'AI che evolve invece di backpropagare.
