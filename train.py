@@ -1,7 +1,9 @@
 """
+import numpy as np  # For type hints
 EVE Training Module
 Training evolutivo per predizione di bit mascherati
 """
+import numpy as np  # For type hints
 
 import os
 import pickle

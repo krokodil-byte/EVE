@@ -1,7 +1,9 @@
 """
+import numpy as np  # For type hints
 EVE Advanced Reward System
 Sistema di reward predittivo con metriche dettagliate
 """
+import numpy as np  # For type hints
 
 from array_backend import xp
 from typing import List, Dict, Any, Optional, Tuple

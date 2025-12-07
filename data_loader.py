@@ -1,7 +1,9 @@
 """
+import numpy as np  # For type hints
 EVE Data Loader
 Carica dataset arbitrari e li converte in bit streams
 """
+import numpy as np  # For type hints
 
 import os
 import json
@@ -9,7 +11,7 @@ import csv
 import gzip
 import bz2
 import xml.etree.ElementTree as ET
-import numpy as np
+from array_backend import xp
 from typing import List, Iterator, Optional, Tuple, Dict, Any
 from pathlib import Path
 from interace import TextTranslator, ByteTranslator

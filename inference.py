@@ -1,7 +1,9 @@
 """
+import numpy as np  # For type hints
 EVE Inference Module
 Chat e inferenza con lattice trained
 """
+import numpy as np  # For type hints
 
 from array_backend import xp
 from typing import Optional, Tuple, List
