@@ -277,8 +277,18 @@ class EVETUI:
         from array_backend import BACKEND, GPU_AVAILABLE
 
         print(f"Current backend: {BACKEND.upper()}")
+        print(f"Python: {sys.executable}\n")
+
         if GPU_AVAILABLE:
+            import array_backend
+            xp = array_backend.xp
             print("✓ CuPy (GPU) is available")
+            try:
+                cuda_version = xp.cuda.runtime.runtimeGetVersion()
+                print(f"  CuPy version: {xp.__version__}")
+                print(f"  CUDA version: {cuda_version // 1000}.{(cuda_version % 1000) // 10}")
+            except:
+                pass
         else:
             print("✗ CuPy (GPU) not available")
             # Try to give more specific info
@@ -286,9 +296,11 @@ class EVETUI:
                 import cupy
                 print("  ℹ  CuPy is installed but can't access GPU")
                 print("  → Check CUDA installation and GPU drivers")
+                print(f"  → Try: {sys.executable} -c 'import cupy; print(cupy.__version__)'")
             except ImportError:
-                print("  ℹ  CuPy not installed")
-                print("  → Install with: pip3 install cupy-cuda12x")
+                print("  ℹ  CuPy not installed in this Python environment")
+                print(f"  → Install with: {sys.executable} -m pip install cupy")
+                print("  → For CUDA 13.x: pip install cupy (supports 11.2-13.x)")
 
         current_pref = os.environ.get('EVE_BACKEND', 'auto')
         try:

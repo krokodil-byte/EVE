@@ -35,13 +35,17 @@ else:
         _ = xp.array([1])  # Test allocation
         BACKEND = "cupy"
         GPU_AVAILABLE = True
-        print("[Backend] Using CuPy - GPU acceleration enabled ✓", file=sys.stderr)
+        cuda_version = xp.cuda.runtime.runtimeGetVersion()
+        print(f"[Backend] Using CuPy {xp.__version__} - GPU acceleration enabled ✓", file=sys.stderr)
+        print(f"[Backend] CUDA Runtime version: {cuda_version // 1000}.{(cuda_version % 1000) // 10}", file=sys.stderr)
     except ImportError as e:
         import numpy as xp
         BACKEND = "numpy"
         GPU_AVAILABLE = False
         print("[Backend] Using NumPy - CPU mode (CuPy not installed)", file=sys.stderr)
-        print(f"[Backend] Install CuPy with: pip3 install cupy-cuda12x (or cupy-cuda11x)", file=sys.stderr)
+        print(f"[Backend] Python: {sys.executable}", file=sys.stderr)
+        print(f"[Backend] Install CuPy with: {sys.executable} -m pip install cupy", file=sys.stderr)
+        print(f"[Backend] For CUDA 13.x use: pip install cupy (supports CUDA 11.2-13.x)", file=sys.stderr)
     except Exception as e:
         # CuPy installed but can't use GPU (no CUDA, wrong version, etc.)
         import numpy as xp
