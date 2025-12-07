@@ -219,7 +219,7 @@ class EVETUI:
         try:
             self.dataset = BitStreamDataset(
                 data_source=dataset_path,
-                chunk_size=512,
+                chunk_size=128,
                 mask_ratio=self.config.training.mask_ratio,
                 seed=42
             )
@@ -241,19 +241,27 @@ class EVETUI:
         print("\n🧬 Starting evolutionary training...")
         sys.stdout.flush()
 
-        print(f"[DEBUG] About to create trainer with pop_size={self.config.evolution.population_size}")
-        sys.stdout.flush()
+        try:
+            print(f"[DEBUG] Config injection check: pop={self.config.evolution.population_size}, lattice={self.config.lattice.size_per_dim}")
+            sys.stdout.flush()
 
-        self.trainer = EvolutionaryTrainer(self.config, self.dataset)
+            self.trainer = EvolutionaryTrainer(self.config, self.dataset)
 
-        print("[DEBUG] Trainer created, starting training...")
-        sys.stdout.flush()
+            print(f"[DEBUG] Trainer created successfully")
+            sys.stdout.flush()
 
-        self.trainer.train(generations=gen_count, verbose=True)
+            self.trainer.train(generations=gen_count, verbose=True)
 
-        print("\n✓ Training completed!")
-        print(f"Best model saved to: {self.config.training.checkpoint_dir}")
-        sys.stdout.flush()
+            print("\n✓ Training completed!")
+            print(f"Best model saved to: {self.config.training.checkpoint_dir}")
+            sys.stdout.flush()
+
+        except Exception as e:
+            print(f"\n❌ TRAINING FAILED!")
+            print(f"Error: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.stdout.flush()
 
         input("\nPress Enter to continue...")
 
