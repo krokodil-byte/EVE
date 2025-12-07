@@ -9,9 +9,10 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-# Forza unbuffered output
-sys.stdout = sys.__stdout__
-sys.stderr = sys.__stderr__
+# Forza VERAMENTE unbuffered output
+os.environ['PYTHONUNBUFFERED'] = '1'
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
 
 from config import EVEConfig
 from data_loader import BitStreamDataset
@@ -240,7 +241,14 @@ class EVETUI:
         print("\n🧬 Starting evolutionary training...")
         sys.stdout.flush()
 
+        print(f"[DEBUG] About to create trainer with pop_size={self.config.evolution.population_size}")
+        sys.stdout.flush()
+
         self.trainer = EvolutionaryTrainer(self.config, self.dataset)
+
+        print("[DEBUG] Trainer created, starting training...")
+        sys.stdout.flush()
+
         self.trainer.train(generations=gen_count, verbose=True)
 
         print("\n✓ Training completed!")
