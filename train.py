@@ -179,9 +179,14 @@ class EvolutionaryTrainer:
         Returns:
             Metriche del migliore individuo
         """
+        import sys
+        print(f"[Gen {epoch}] Evaluating population...", end='', flush=True)
+
         batch = self.dataset.get_batch(self.config.training.batch_size)
 
         fitnesses = self.evaluate_population_on_batch(batch)
+
+        print(" Done.", flush=True)
 
         best_idx = np.argmax(fitnesses)
         input_bits, target_bits, mask_positions = batch[0]
@@ -229,7 +234,7 @@ class EvolutionaryTrainer:
         for gen in range(generations):
             metrics = self.train_epoch(gen)
 
-            if verbose and (gen % 1 == 0 or gen == generations - 1):
+            if verbose and (gen % 10 == 0 or gen == generations - 1):
                 print(self.stats.display())
                 sys.stdout.flush()
 
