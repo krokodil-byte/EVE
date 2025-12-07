@@ -89,7 +89,7 @@ class EvolutionaryTrainer:
             if not final_states:
                 return 0.0, input_bits
 
-            predicted_bits = final_states[0]['state']
+            predicted_bits = final_states[0].state
 
             if len(predicted_bits) != len(target_bits):
                 predicted_bits = np.resize(predicted_bits, len(target_bits))
@@ -99,6 +99,11 @@ class EvolutionaryTrainer:
             return fitness, predicted_bits
 
         except Exception as e:
+            import sys
+            print(f"[ERROR] Evaluation failed: {e}")
+            sys.stdout.flush()
+            import traceback
+            traceback.print_exc()
             return 0.0, input_bits
 
     def evaluate_population_on_batch(
