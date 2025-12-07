@@ -280,29 +280,3 @@ class EvolutionaryTrainer:
             checkpoint = pickle.load(f)
 
         return checkpoint['best_map'], checkpoint['config']
-
-
-if __name__ == "__main__":
-    from config import EVEConfig
-
-    config = EVEConfig()
-    config.evolution.population_size = 16
-    config.evolution.generations = 50
-    config.training.batch_size = 8
-    config.training.save_interval = 10
-    config.lattice.size_per_dim = 6
-
-    with open("/tmp/test_training.txt", "w") as f:
-        f.write("Hello world from EVE. " * 100)
-        f.write("This is a revolutionary AI model. " * 100)
-        f.write("Evolution instead of backprop. " * 100)
-
-    dataset = BitStreamDataset(
-        data_source="/tmp/test_training.txt",
-        chunk_size=128,
-        mask_ratio=0.25,
-        seed=42
-    )
-
-    trainer = EvolutionaryTrainer(config, dataset)
-    trainer.train(generations=20, verbose=True)
