@@ -63,9 +63,10 @@ class EVETUI:
 
     def train_menu(self):
         """Training menu - uses CLI core"""
-        self.clear()
-        self.banner()
-        print("─ TRAINING MODE ─\n")
+        # Don't clear screen - let training output be visible
+        print("\n" + "="*60)
+        print("  TRAINING MODE")
+        print("="*60 + "\n")
 
         # Get dataset path
         dataset_path = input("Dataset path: ").strip()
@@ -127,7 +128,8 @@ class EVETUI:
             print("1. Lattice Settings")
             print("2. Evolution Settings")
             print("3. Training Settings")
-            print("4. Back")
+            print("4. Backend Settings (CPU/GPU)")
+            print("5. Back")
 
             choice = input("\nChoice: ").strip()
 
@@ -138,6 +140,8 @@ class EVETUI:
             elif choice == '3':
                 self.config_training()
             elif choice == '4':
+                self.config_backend()
+            elif choice == '5':
                 break
 
     def config_lattice(self):
@@ -263,6 +267,50 @@ class EVETUI:
             print(f"\n❌ Error: {e}")
 
         input("Press Enter...")
+
+    def config_backend(self):
+        """Configure computation backend (CPU/GPU)"""
+        self.clear()
+        self.banner()
+        print("─ BACKEND CONFIGURATION ─\n")
+
+        from array_backend import BACKEND, GPU_AVAILABLE
+
+        print(f"Current backend: {BACKEND.upper()}")
+        if GPU_AVAILABLE:
+            print("✓ CuPy (GPU) is available")
+        else:
+            print("✗ CuPy (GPU) not installed")
+
+        current_pref = os.environ.get('EVE_BACKEND', 'auto')
+        print(f"Current preference: {current_pref}\n")
+
+        print("Options:")
+        print("1. Auto (use GPU if available)")
+        print("2. Force CPU (use NumPy even if CuPy available)")
+        print("3. Cancel")
+
+        choice = input("\nChoice: ").strip()
+
+        if choice == '1':
+            preference = 'auto'
+        elif choice == '2':
+            preference = 'cpu'
+        else:
+            input("\nPress Enter...")
+            return
+
+        # Save preference to file
+        with open('.eve_backend', 'w') as f:
+            f.write(preference)
+
+        print(f"\n✓ Backend preference set to: {preference}")
+        print("\n⚠️  You need to RESTART the program for this to take effect!")
+        print("\nTo restart with new backend:")
+        print(f"  EVE_BACKEND={preference} python3 tui.py")
+        print("\nOr just run: python3 tui.py (reads from .eve_backend)")
+
+        input("\nPress Enter...")
 
 
 def main():
