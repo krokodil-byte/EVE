@@ -63,9 +63,10 @@ class EVETUI:
 
     def train_menu(self):
         """Training menu - uses CLI core"""
-        self.clear()
-        self.banner()
-        print("─ TRAINING MODE ─\n")
+        # Don't clear screen - let training output be visible
+        print("\n" + "="*60)
+        print("  TRAINING MODE")
+        print("="*60 + "\n")
 
         # Get dataset path
         dataset_path = input("Dataset path: ").strip()
