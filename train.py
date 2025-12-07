@@ -31,16 +31,23 @@ class EvolutionaryTrainer:
         self.dataset = dataset
 
         import sys
+        total_nodes = config.lattice.size_per_dim ** config.lattice.dimensions
         print(f"Creating population of {config.evolution.population_size} lattice maps...")
+        print(f"Each lattice: {config.lattice.size_per_dim}^{config.lattice.dimensions} = {total_nodes:,} nodes")
         sys.stdout.flush()
 
-        self.population = [
-            LatticeMap(
+        self.population = []
+        for i in range(config.evolution.population_size):
+            map_ = LatticeMap(
                 size=config.lattice.size_per_dim,
                 dim=config.lattice.dimensions
             )
-            for _ in range(config.evolution.population_size)
-        ]
+            self.population.append(map_)
+
+            # Progress feedback every 10% or for small populations every individual
+            if (i + 1) % max(1, config.evolution.population_size // 10) == 0:
+                progress = (i + 1) / config.evolution.population_size * 100
+                print(f"  [{i+1}/{config.evolution.population_size}] {progress:.0f}%", flush=True)
 
         print(f"✓ Population created ({config.lattice.size_per_dim}x{config.lattice.size_per_dim} lattice)")
         sys.stdout.flush()
