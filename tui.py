@@ -280,9 +280,25 @@ class EVETUI:
         if GPU_AVAILABLE:
             print("✓ CuPy (GPU) is available")
         else:
-            print("✗ CuPy (GPU) not installed")
+            print("✗ CuPy (GPU) not available")
+            # Try to give more specific info
+            try:
+                import cupy
+                print("  ℹ  CuPy is installed but can't access GPU")
+                print("  → Check CUDA installation and GPU drivers")
+            except ImportError:
+                print("  ℹ  CuPy not installed")
+                print("  → Install with: pip3 install cupy-cuda12x")
 
         current_pref = os.environ.get('EVE_BACKEND', 'auto')
+        try:
+            with open('.eve_backend', 'r') as f:
+                file_pref = f.read().strip()
+                if not current_pref or current_pref == 'auto':
+                    current_pref = file_pref
+        except FileNotFoundError:
+            pass
+
         print(f"Current preference: {current_pref}\n")
 
         print("Options:")
