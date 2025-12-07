@@ -3,7 +3,7 @@ EVE Inference Module
 Chat e inferenza con lattice trained
 """
 
-import numpy as np
+from array_backend import xp
 from typing import Optional, Tuple, List
 import pickle
 
@@ -34,12 +34,12 @@ class EVEInference:
         self.config = config
         self.translator = translator or TextTranslator()
 
-        self.context_bits = np.array([], dtype=np.uint8)
+        self.context_bits = xp.array([], dtype=xp.uint8)
         self.max_context_bits = config.inference.context_window * 8
 
     def reset_context(self):
         """Resetta il contesto conversazionale"""
-        self.context_bits = np.array([], dtype=np.uint8)
+        self.context_bits = xp.array([], dtype=xp.uint8)
 
     def add_to_context(self, text: str):
         """
@@ -49,7 +49,7 @@ class EVEInference:
             text: Testo da aggiungere
         """
         new_bits = self.translator.encode(text)
-        self.context_bits = np.concatenate([self.context_bits, new_bits])
+        self.context_bits = xp.concatenate([self.context_bits, new_bits])
 
         if len(self.context_bits) > self.max_context_bits:
             self.context_bits = self.context_bits[-self.max_context_bits:]
@@ -91,7 +91,7 @@ class EVEInference:
 
             extra_bits_needed = max_length * 8
             if len(output_bits) < extra_bits_needed:
-                output_bits = np.pad(
+                output_bits = xp.pad(
                     output_bits,
                     (0, extra_bits_needed - len(output_bits)),
                     mode='constant'
@@ -118,7 +118,7 @@ class EVEInference:
             Testo con caratteri predetti
         """
         full_bits = self.translator.encode(text.replace(mask_char, 'X'))
-        mask_positions = np.array([c == mask_char for c in text], dtype=bool)
+        mask_positions = xp.array([c == mask_char for c in text], dtype=bool)
 
         input_bits = full_bits.copy()
         char_size = 8
@@ -147,7 +147,7 @@ class EVEInference:
             predicted_bits = final_states[0].state
 
             if len(predicted_bits) != len(full_bits):
-                predicted_bits = np.resize(predicted_bits, len(full_bits))
+                predicted_bits = xp.resize(predicted_bits, len(full_bits))
 
             predicted_text = self.translator.decode(predicted_bits)
 

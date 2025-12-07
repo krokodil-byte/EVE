@@ -509,7 +509,7 @@ class BitStreamDataset:
         self.mask_ratio = mask_ratio
         self.loader = DataLoader(chunk_size=chunk_size)
         self.translator = TextTranslator()
-        self.rng = np.random.RandomState(seed)
+        self.rng = xp.random.RandomState(seed)
 
         print(f"[DataLoader] Caricamento da: {data_source}")
         self.chunks = self.loader.load(data_source)
@@ -521,7 +521,7 @@ class BitStreamDataset:
     def __len__(self) -> int:
         return len(self.chunks)
 
-    def get_sample(self, idx: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_sample(self, idx: int) -> Tuple[xp.ndarray, xp.ndarray, xp.ndarray]:
         """
         Ottiene un sample con bit mascherati
 
@@ -541,7 +541,7 @@ class BitStreamDataset:
         n_bits = len(target_bits)
         n_masked = int(n_bits * self.mask_ratio)
 
-        mask_positions = np.zeros(n_bits, dtype=bool)
+        mask_positions = xp.zeros(n_bits, dtype=bool)
         masked_indices = self.rng.choice(n_bits, size=n_masked, replace=False)
         mask_positions[masked_indices] = True
 
@@ -550,7 +550,7 @@ class BitStreamDataset:
 
         return input_bits, target_bits, mask_positions
 
-    def get_batch(self, batch_size: int) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    def get_batch(self, batch_size: int) -> List[Tuple[xp.ndarray, xp.ndarray, xp.ndarray]]:
         """
         Genera batch random di sample
 
@@ -563,7 +563,7 @@ class BitStreamDataset:
         indices = self.rng.choice(len(self.chunks), size=batch_size, replace=True)
         return [self.get_sample(idx) for idx in indices]
 
-    def iterate_batches(self, batch_size: int) -> Iterator[List[Tuple[np.ndarray, np.ndarray, np.ndarray]]]:
+    def iterate_batches(self, batch_size: int) -> Iterator[List[Tuple[xp.ndarray, xp.ndarray, xp.ndarray]]]:
         """
         Iteratore infinito di batch
         """

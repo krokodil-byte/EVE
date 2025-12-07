@@ -5,7 +5,7 @@ Training evolutivo per predizione di bit mascherati
 
 import os
 import pickle
-import numpy as np
+from array_backend import xp
 from typing import List, Optional, Tuple
 from datetime import datetime
 
@@ -61,11 +61,11 @@ class EvolutionaryTrainer:
     def evaluate_individual(
         self,
         map_: LatticeMap,
-        input_bits: np.ndarray,
-        target_bits: np.ndarray,
-        mask_positions: np.ndarray,
+        input_bits: xp.ndarray,
+        target_bits: xp.ndarray,
+        mask_positions: xp.ndarray,
         start_coord: Optional[Tuple[int, ...]] = None
-    ) -> Tuple[float, np.ndarray]:
+    ) -> Tuple[float, xp.ndarray]:
         """
         Valuta un singolo lattice su un task
 
@@ -99,7 +99,7 @@ class EvolutionaryTrainer:
             predicted_bits = final_states[0].state
 
             if len(predicted_bits) != len(target_bits):
-                predicted_bits = np.resize(predicted_bits, len(target_bits))
+                predicted_bits = xp.resize(predicted_bits, len(target_bits))
 
             fitness = self.reward(predicted_bits, target_bits)
 
@@ -115,7 +115,7 @@ class EvolutionaryTrainer:
 
     def evaluate_population_on_batch(
         self,
-        batch: List[Tuple[np.ndarray, np.ndarray, np.ndarray]]
+        batch: List[Tuple[xp.ndarray, xp.ndarray, xp.ndarray]]
     ) -> List[float]:
         """
         Valuta tutta la popolazione su un batch
@@ -137,7 +137,7 @@ class EvolutionaryTrainer:
                 )
                 batch_fitnesses.append(fitness)
 
-            avg_fitness = np.mean(batch_fitnesses)
+            avg_fitness = xp.mean(batch_fitnesses)
             fitnesses.append(avg_fitness)
 
         return fitnesses
@@ -155,7 +155,7 @@ class EvolutionaryTrainer:
         n_elite = int(len(self.population) * self.config.evolution.elite_ratio)
         n_elite = max(1, n_elite)
 
-        sorted_indices = np.argsort(fitnesses)[::-1]
+        sorted_indices = xp.argsort(fitnesses)[::-1]
         elites_indices = sorted_indices[:n_elite]
 
         elites = [self.population[i] for i in elites_indices]
@@ -169,7 +169,7 @@ class EvolutionaryTrainer:
         new_population.extend([elite.clone() for elite in elites])
 
         while len(new_population) < self.config.evolution.population_size:
-            parent = np.random.choice(elites)
+            parent = xp.random.choice(elites)
             child = parent.clone()
             child.mutate(p_flip=self.config.evolution.mutation_rate)
             new_population.append(child)
@@ -195,7 +195,7 @@ class EvolutionaryTrainer:
 
         print(" Done.", flush=True)
 
-        best_idx = np.argmax(fitnesses)
+        best_idx = xp.argmax(fitnesses)
         input_bits, target_bits, mask_positions = batch[0]
         self.reward.set_mask(mask_positions)
         _, predicted = self.evaluate_individual(
