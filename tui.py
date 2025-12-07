@@ -233,16 +233,30 @@ class EVETUI:
         sys.stdout.flush()
 
         generations = input(f"\nGenerations [{self.config.evolution.generations}]: ").strip()
+
+        print(f"[TRACE] Input received: '{generations}'")
+        sys.stdout.flush()
+
         if generations:
             gen_count = int(generations)
         else:
             gen_count = self.config.evolution.generations
 
+        print(f"[TRACE] gen_count set to: {gen_count}")
+        sys.stdout.flush()
+
         print("\n🧬 Starting evolutionary training...")
         sys.stdout.flush()
 
         try:
+            print(f"[TRACE] Creating trainer...")
+            sys.stdout.flush()
+
             self.trainer = EvolutionaryTrainer(self.config, self.dataset)
+
+            print(f"[TRACE] Calling train()...")
+            sys.stdout.flush()
+
             self.trainer.train(generations=gen_count, verbose=True)
 
             print("\n✓ Training completed!")
