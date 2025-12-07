@@ -219,7 +219,7 @@ class EVETUI:
         try:
             self.dataset = BitStreamDataset(
                 data_source=dataset_path,
-                chunk_size=512,
+                chunk_size=128,
                 mask_ratio=self.config.training.mask_ratio,
                 seed=42
             )
