@@ -12,8 +12,9 @@ from pathlib import Path
 os.environ['PYTHONUNBUFFERED'] = '1'
 
 from config import EVEConfig
-from data_loader import BitStreamDataset
-from train import EvolutionaryTrainer
+
+# Lazy imports - don't import array_backend until needed
+# (BitStreamDataset and EvolutionaryTrainer import array_backend)
 
 
 class EVETUI:
@@ -30,7 +31,18 @@ class EVETUI:
     def banner(self):
         print("\n" + "="*60)
         print("  EVE - Evolutionary Intelligence")
-        print("="*60 + "\n")
+        print("="*60)
+
+        # Show backend status
+        try:
+            from array_backend import BACKEND, GPU_AVAILABLE
+            if GPU_AVAILABLE:
+                print("  🚀 Backend: GPU (CuPy)")
+            else:
+                print("  💻 Backend: CPU (NumPy)")
+        except:
+            pass
+        print()
 
     def main_menu(self):
         """Main menu loop"""
@@ -63,6 +75,10 @@ class EVETUI:
 
     def train_menu(self):
         """Training menu - uses CLI core"""
+        # Lazy import - this will trigger array_backend initialization
+        from data_loader import BitStreamDataset
+        from train import EvolutionaryTrainer
+
         # Don't clear screen - let training output be visible
         print("\n" + "="*60)
         print("  TRAINING MODE")
@@ -316,7 +332,8 @@ class EVETUI:
         print("Options:")
         print("1. Auto (use GPU if available)")
         print("2. Force CPU (use NumPy even if CuPy available)")
-        print("3. Cancel")
+        print("3. Test CuPy import (diagnostics)")
+        print("4. Cancel")
 
         choice = input("\nChoice: ").strip()
 
@@ -324,6 +341,41 @@ class EVETUI:
             preference = 'auto'
         elif choice == '2':
             preference = 'cpu'
+        elif choice == '3':
+            # Diagnostic test
+            print("\n" + "─"*60)
+            print("TESTING CUPY IMPORT...")
+            print("─"*60 + "\n")
+            print(f"Python: {sys.executable}\n")
+
+            # Test import with full error output
+            try:
+                print("→ Attempting: import cupy")
+                import cupy
+                print(f"✓ CuPy imported successfully!")
+                print(f"  Version: {cupy.__version__}")
+
+                print("\n→ Attempting: cupy.array([1, 2, 3])")
+                test_arr = cupy.array([1, 2, 3])
+                print(f"✓ GPU array created successfully!")
+                print(f"  Device: {test_arr.device}")
+
+                print("\n→ Getting CUDA info...")
+                cuda_ver = cupy.cuda.runtime.runtimeGetVersion()
+                print(f"✓ CUDA Runtime: {cuda_ver // 1000}.{(cuda_ver % 1000) // 10}")
+
+            except ImportError as e:
+                print(f"✗ Import failed: {e}")
+                print(f"\nTo install CuPy for CUDA 13:")
+                print(f"  {sys.executable} -m pip install cupy")
+            except Exception as e:
+                print(f"✗ Error: {type(e).__name__}: {e}")
+                print(f"\nCuPy is installed but cannot access GPU.")
+                print(f"Check CUDA installation and drivers.")
+
+            print("\n" + "─"*60)
+            input("\nPress Enter...")
+            return
         else:
             input("\nPress Enter...")
             return
