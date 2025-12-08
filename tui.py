@@ -12,8 +12,9 @@ from pathlib import Path
 os.environ['PYTHONUNBUFFERED'] = '1'
 
 from config import EVEConfig
-from data_loader import BitStreamDataset
-from train import EvolutionaryTrainer
+
+# Lazy imports - don't import array_backend until needed
+# (BitStreamDataset and EvolutionaryTrainer import array_backend)
 
 
 class EVETUI:
@@ -30,7 +31,18 @@ class EVETUI:
     def banner(self):
         print("\n" + "="*60)
         print("  EVE - Evolutionary Intelligence")
-        print("="*60 + "\n")
+        print("="*60)
+
+        # Show backend status
+        try:
+            from array_backend import BACKEND, GPU_AVAILABLE
+            if GPU_AVAILABLE:
+                print("  🚀 Backend: GPU (CuPy)")
+            else:
+                print("  💻 Backend: CPU (NumPy)")
+        except:
+            pass
+        print()
 
     def main_menu(self):
         """Main menu loop"""
@@ -63,6 +75,10 @@ class EVETUI:
 
     def train_menu(self):
         """Training menu - uses CLI core"""
+        # Lazy import - this will trigger array_backend initialization
+        from data_loader import BitStreamDataset
+        from train import EvolutionaryTrainer
+
         # Don't clear screen - let training output be visible
         print("\n" + "="*60)
         print("  TRAINING MODE")
@@ -277,18 +293,47 @@ class EVETUI:
         from array_backend import BACKEND, GPU_AVAILABLE
 
         print(f"Current backend: {BACKEND.upper()}")
+        print(f"Python: {sys.executable}\n")
+
         if GPU_AVAILABLE:
+            import array_backend
+            xp = array_backend.xp
             print("✓ CuPy (GPU) is available")
+            try:
+                cuda_version = xp.cuda.runtime.runtimeGetVersion()
+                print(f"  CuPy version: {xp.__version__}")
+                print(f"  CUDA version: {cuda_version // 1000}.{(cuda_version % 1000) // 10}")
+            except:
+                pass
         else:
-            print("✗ CuPy (GPU) not installed")
+            print("✗ CuPy (GPU) not available")
+            # Try to give more specific info
+            try:
+                import cupy
+                print("  ℹ  CuPy is installed but can't access GPU")
+                print("  → Check CUDA installation and GPU drivers")
+                print(f"  → Try: {sys.executable} -c 'import cupy; print(cupy.__version__)'")
+            except ImportError:
+                print("  ℹ  CuPy not installed in this Python environment")
+                print(f"  → Install with: {sys.executable} -m pip install cupy")
+                print("  → For CUDA 13.x: pip install cupy (supports 11.2-13.x)")
 
         current_pref = os.environ.get('EVE_BACKEND', 'auto')
+        try:
+            with open('.eve_backend', 'r') as f:
+                file_pref = f.read().strip()
+                if not current_pref or current_pref == 'auto':
+                    current_pref = file_pref
+        except FileNotFoundError:
+            pass
+
         print(f"Current preference: {current_pref}\n")
 
         print("Options:")
         print("1. Auto (use GPU if available)")
         print("2. Force CPU (use NumPy even if CuPy available)")
-        print("3. Cancel")
+        print("3. Test CuPy import (diagnostics)")
+        print("4. Cancel")
 
         choice = input("\nChoice: ").strip()
 
@@ -296,6 +341,41 @@ class EVETUI:
             preference = 'auto'
         elif choice == '2':
             preference = 'cpu'
+        elif choice == '3':
+            # Diagnostic test
+            print("\n" + "─"*60)
+            print("TESTING CUPY IMPORT...")
+            print("─"*60 + "\n")
+            print(f"Python: {sys.executable}\n")
+
+            # Test import with full error output
+            try:
+                print("→ Attempting: import cupy")
+                import cupy
+                print(f"✓ CuPy imported successfully!")
+                print(f"  Version: {cupy.__version__}")
+
+                print("\n→ Attempting: cupy.array([1, 2, 3])")
+                test_arr = cupy.array([1, 2, 3])
+                print(f"✓ GPU array created successfully!")
+                print(f"  Device: {test_arr.device}")
+
+                print("\n→ Getting CUDA info...")
+                cuda_ver = cupy.cuda.runtime.runtimeGetVersion()
+                print(f"✓ CUDA Runtime: {cuda_ver // 1000}.{(cuda_ver % 1000) // 10}")
+
+            except ImportError as e:
+                print(f"✗ Import failed: {e}")
+                print(f"\nTo install CuPy for CUDA 13:")
+                print(f"  {sys.executable} -m pip install cupy")
+            except Exception as e:
+                print(f"✗ Error: {type(e).__name__}: {e}")
+                print(f"\nCuPy is installed but cannot access GPU.")
+                print(f"Check CUDA installation and drivers.")
+
+            print("\n" + "─"*60)
+            input("\nPress Enter...")
+            return
         else:
             input("\nPress Enter...")
             return
