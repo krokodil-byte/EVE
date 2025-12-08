@@ -189,13 +189,17 @@ class EvolutionaryTrainer:
             Metriche del migliore individuo
         """
         import sys
-        print(f"[Gen {epoch}] Evaluating population...", end='', flush=True)
+        import time
+        start_time = time.time()
+
+        print(f"[Gen {epoch}] Evaluating population...", end=' ', flush=True)
 
         batch = self.dataset.get_batch(self.config.training.batch_size)
 
         fitnesses = self.evaluate_population_on_batch(batch)
 
-        print(" Done.", flush=True)
+        elapsed = time.time() - start_time
+        print(f"Done ({elapsed:.2f}s)", flush=True)
 
         best_idx = xp.argmax(fitnesses)
         input_bits, target_bits, mask_positions = batch[0]
@@ -240,15 +244,11 @@ class EvolutionaryTrainer:
         print("─" * 57)
         sys.stdout.flush()
 
-        import time
         for gen in range(generations):
-            start_time = time.time()
             metrics = self.train_epoch(gen)
-            elapsed = time.time() - start_time
 
-            print(f" [{elapsed:.2f}s]", flush=True)
-
-            if verbose and (gen % 10 == 0 or gen == generations - 1):
+            # Show detailed stats every 5 generations or at the end
+            if verbose and (gen % 5 == 0 or gen == generations - 1):
                 print(self.stats.display())
                 sys.stdout.flush()
 
