@@ -99,27 +99,32 @@ class EVETUI:
             gen_count = self.config.evolution.generations
 
         # Load dataset
-        print(f"\n📁 Loading dataset from: {dataset_path}")
-        sys.stdout.flush()
+        print(f"\n📁 Loading dataset from: {dataset_path}", flush=True)
+        print(f"   Generations: {gen_count}", flush=True)
+        print(f"   Chunk size: 128", flush=True)
+        print(f"   Mask ratio: {self.config.training.mask_ratio}", flush=True)
 
         try:
+            print("→ Creating BitStreamDataset...", flush=True)
             self.dataset = BitStreamDataset(
                 data_source=dataset_path,
                 chunk_size=128,
                 mask_ratio=self.config.training.mask_ratio,
                 seed=42
             )
+            print(f"✓ Dataset loaded: {len(self.dataset)} chunks\n", flush=True)
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"❌ Dataset loading failed: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
             input("\nPress Enter...")
             return
 
-        print(f"✓ Dataset loaded: {len(self.dataset)} chunks\n")
-        sys.stdout.flush()
-
         # Train using CLI core
         try:
+            print("→ Creating EvolutionaryTrainer...", flush=True)
             self.trainer = EvolutionaryTrainer(self.config, self.dataset)
+            print("→ Starting training...\n", flush=True)
             self.trainer.train(generations=gen_count, verbose=True)
 
             print(f"\n✓ Training completed!")
