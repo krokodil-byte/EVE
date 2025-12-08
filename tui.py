@@ -79,7 +79,7 @@ class EVETUI:
         from data_loader import BitStreamDataset
         from train import EvolutionaryTrainer
 
-        # Don't clear screen - let training output be visible
+        # Use same output as CLI - no fancy formatting
         print("\n" + "="*60)
         print("  TRAINING MODE")
         print("="*60 + "\n")
@@ -132,7 +132,12 @@ class EVETUI:
             import traceback
             traceback.print_exc()
 
-        input("\nPress Enter...")
+        # Don't clear screen when returning - let user see full training log
+        print("\n" + "─"*60)
+        choice = input("\nReturn to menu? (y/n): ").strip().lower()
+        if choice != 'y':
+            print("\n👋 Goodbye!")
+            exit(0)
 
     def settings_menu(self):
         """Settings configuration menu"""
